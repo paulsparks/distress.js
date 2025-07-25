@@ -55,8 +55,7 @@ export class App<PathUnion extends string> {
 
         const routePath = `/${bestPath?.join("/")}` as keyof Routes<PathUnion>;
 
-        const handler =
-            this.routes[`/${bestPath?.join("/")}` as keyof Routes<PathUnion>];
+        const handler = this.routes[routePath];
 
         const paramKeys =
             bestPath
