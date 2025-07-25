@@ -81,7 +81,7 @@ export class App<PathUnion extends string> {
         this.routes[path] = handler;
     }
 
-    handle<Path extends string>(path: Path) {
+    handle(path: string) {
         const route = this.findRoute(path);
 
         if (!route) {
