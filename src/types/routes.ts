@@ -1,11 +1,10 @@
-import type { TODO } from "./util";
+import * as http from "node:http";
 
 export type Request<Params extends string> = {
-    path: string;
     params: {
         [Param in Params]: string;
     };
-};
+} & http.IncomingMessage;
 
 export type ExtractSlugs<Path extends string> =
     Path extends `${string}/:${infer Slug}/${infer Rest}`
@@ -16,7 +15,7 @@ export type ExtractSlugs<Path extends string> =
 
 export type RouteHandler<Path extends string> = (
     req: Request<ExtractSlugs<Path>>,
-    res: TODO
+    res: http.ServerResponse<http.IncomingMessage>
 ) => void;
 
 export type Routes<PathUnion extends string> = {

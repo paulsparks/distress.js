@@ -1,3 +1,5 @@
+import * as http from "node:http";
+
 import type {
     ExtractSlugs,
     Request,
@@ -7,6 +9,11 @@ import type {
 
 export class App<PathUnion extends string> {
     private routes: Partial<Routes<PathUnion>> = {};
+    private server: http.Server;
+
+    constructor() {
+        this.server = http.createServer();
+    }
 
     private getRoutePaths() {
         return Object.keys(this.routes);
@@ -22,6 +29,7 @@ export class App<PathUnion extends string> {
         );
         const inputPath = this.toSegments(path);
 
+        // Find all registered paths that match the URL structure
         const possiblePaths = registeredPaths
             .map((registeredPath) => {
                 if (registeredPath.length !== inputPath.length) {
@@ -47,6 +55,7 @@ export class App<PathUnion extends string> {
             )
         );
 
+        // Use the first path that includes the least amount of dynamic URL params
         const bestPath = possiblePaths.find(
             (path) =>
                 path.filter((segment) => segment.includes(":")).length ===
@@ -77,28 +86,39 @@ export class App<PathUnion extends string> {
         }
     }
 
-    get<Path extends PathUnion>(path: Path, handler: RouteHandler<Path>) {
-        this.routes[path] = handler;
-    }
+    private handle(
+        req: http.IncomingMessage,
+        res: http.ServerResponse<http.IncomingMessage>
+    ) {
+        if (!req.url) {
+            return;
+        }
 
-    handle(path: string) {
-        const route = this.findRoute(path);
+        console.log(`GET ${req.url}`);
+
+        const route = this.findRoute(req.url);
 
         if (!route) {
-            throw new Error(
-                `There are no registered routes matching the path ${path}`
-            );
+            res.end("<h1>404 Not Found</h1>");
+
+            return;
         }
 
         route.handler(
-            {
-                path: path,
-                // We make the assumption that findRoute() is correctly mapping the params
-                params: route.params as Request<
-                    ExtractSlugs<keyof Routes<PathUnion>>
-                >["params"],
-            },
-            {}
+            { ...req, params: route.params } as Request<
+                ExtractSlugs<keyof Routes<PathUnion>>
+            >,
+            res
         );
+    }
+
+    listen(port: number) {
+        this.server.listen(port);
+        this.server.on("request", this.handle.bind(this));
+        console.log(`Listening on port ${port}...`);
+    }
+
+    get<Path extends PathUnion>(path: Path, handler: RouteHandler<Path>) {
+        this.routes[path] = handler;
     }
 }
